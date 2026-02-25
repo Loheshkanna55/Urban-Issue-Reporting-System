@@ -1,0 +1,78 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h2><i class="bi bi-person-circle me-2"></i>My Profile</h2>
+</div>
+
+<div class="row g-4">
+  <!-- Profile Card -->
+  <div class="col-md-4">
+    <div class="card card-glass text-center p-4">
+      <img src="<%= user.profileImage || '/img/default-avatar.png' %>"
+           alt="Profile" class="profile-avatar mx-auto mb-3">
+      <h5><%= user.name %></h5>
+      <span class="badge bg-<%= user.role === 'admin' ? 'danger' : 'primary' %> mb-2"><%= user.role %></span>
+      <p class="text-muted small mb-0"><%= user.email %></p>
+      <p class="text-muted small"><%= user.area || 'No area set' %></p>
+      <p class="text-muted small">Joined: <%= new Date(user.createdAt).toLocaleDateString('en-IN', {year:'numeric',month:'long',day:'numeric'}) %></p>
+    </div>
+  </div>
+
+  <!-- Edit Profile Form -->
+  <div class="col-md-8">
+    <div class="card card-glass p-4">
+      <h5 class="mb-4"><i class="bi bi-pencil me-2"></i>Edit Profile</h5>
+      <form action="/profile?_method=PUT" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="_method" value="PUT">
+        <div class="mb-3">
+          <label class="form-label">Profile Photo</label>
+          <input type="file" name="profileImage" class="form-control" accept="image/*">
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Full Name</label>
+            <input type="text" name="name" class="form-control" value="<%= user.name %>" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Phone</label>
+            <input type="tel" name="phone" class="form-control" value="<%= user.phone || '' %>">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Your Area</label>
+            <input type="text" name="area" class="form-control" value="<%= user.area || '' %>">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary mt-3">
+          <i class="bi bi-save me-2"></i>Save Changes
+        </button>
+      </form>
+    </div>
+
+    <!-- Change Password -->
+    <div class="card card-glass p-4 mt-4">
+      <h5 class="mb-4"><i class="bi bi-lock me-2"></i>Change Password</h5>
+      <form action="/profile/password?_method=PUT" method="POST">
+        <input type="hidden" name="_method" value="PUT">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label">Current Password</label>
+            <input type="password" name="currentPassword" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">New Password</label>
+            <input type="password" name="newPassword" class="form-control" required minlength="6">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Confirm New Password</label>
+            <input type="password" name="confirmNewPassword" class="form-control" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-warning mt-3">
+          <i class="bi bi-key me-2"></i>Update Password
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

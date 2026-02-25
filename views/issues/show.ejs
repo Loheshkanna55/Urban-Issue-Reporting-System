@@ -1,0 +1,222 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <div>
+    <h2><i class="bi bi-clipboard-check me-2"></i>Issue Details</h2>
+    <p class="text-muted">#<%= issue.issueId %></p>
+  </div>
+  <div class="d-flex gap-2">
+    <span class="status-badge-lg status-<%= issue.status.toLowerCase().replace(/\s+/g,'-') %>">
+      <%= issue.status %>
+    </span>
+    <a href="/issues" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Issue Details -->
+  <div class="col-md-8">
+    <div class="card card-glass p-4 mb-4">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <h4 class="fw-bold"><%= issue.title %></h4>
+        <div>
+          <span class="priority-badge priority-<%= issue.priorityScore >= 40 ? 'critical' : issue.priorityScore >= 25 ? 'high' : issue.priorityScore >= 15 ? 'medium' : 'low' %>">
+            Priority Score: <%= issue.priorityScore %>
+          </span>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6">
+          <div class="detail-item">
+            <span class="detail-label"><i class="bi bi-tag me-1"></i>Category</span>
+            <span class="detail-value"><%= issue.category %></span>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="detail-item">
+            <span class="detail-label"><i class="bi bi-geo-alt me-1"></i>Location</span>
+            <span class="detail-value"><%= issue.area %>, <%= issue.locality %></span>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="detail-item">
+            <span class="detail-label"><i class="bi bi-exclamation-triangle me-1"></i>Severity</span>
+            <div class="severity-display">
+              <% for(let i=1; i<=5; i++) { %>
+              <span class="sev-dot <%= i <= issue.severity ? 'active' : '' %>"></span>
+              <% } %>
+              <span class="ms-2 small"><%= issue.severity %>/5</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="detail-item">
+            <span class="detail-label"><i class="bi bi-calendar me-1"></i>Reported</span>
+            <span class="detail-value"><%= new Date(issue.createdAt).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'}) %></span>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="detail-item">
+            <span class="detail-label"><i class="bi bi-person me-1"></i>Reported By</span>
+            <span class="detail-value"><%= issue.reportedBy.name %></span>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="detail-item">
+            <span class="detail-label"><i class="bi bi-clock me-1"></i>Days Pending</span>
+            <span class="detail-value"><%= issue.daysPending %> days</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <h6 class="fw-bold">Description</h6>
+        <p class="text-muted"><%= issue.description %></p>
+      </div>
+
+      <% if (issue.adminNote) { %>
+      <div class="admin-note mb-4">
+        <h6 class="fw-bold"><i class="bi bi-shield-check me-2"></i>Admin Note</h6>
+        <p><%= issue.adminNote %></p>
+      </div>
+      <% } %>
+
+      <!-- Upvote -->
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-outline-primary btn-sm" id="upvoteBtn" onclick="upvoteIssue('<%= issue._id %>')">
+          <i class="bi bi-hand-thumbs-up me-1"></i>
+          <span id="upvoteCount"><%= issue.upvotes.length %></span> Upvotes
+        </button>
+        <small class="text-muted">Upvote to show this affects you too</small>
+      </div>
+    </div>
+
+    <!-- Image Gallery -->
+    <% if (issue.images.length > 0) { %>
+    <div class="card card-glass p-4 mb-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-images me-2"></i>Evidence Photos</h6>
+      <div class="photo-gallery">
+        <% issue.images.forEach((img, i) => { %>
+        <img src="<%= img %>" alt="Issue photo <%= i+1 %>"
+             onclick="openLightbox('<%= img %>')" class="gallery-img">
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Map -->
+    <% if (issue.location && issue.location.coordinates && issue.location.coordinates.length === 2) { %>
+    <div class="card card-glass p-4 mb-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-map me-2"></i>Location on Map</h6>
+      <div id="issueMap" style="height:250px; border-radius:12px;"></div>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- Status Timeline -->
+  <div class="col-md-4">
+    <div class="card card-glass p-4 mb-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-clock-history me-2"></i>Status History</h6>
+      <div class="timeline" id="statusTimeline">
+        <% issue.statusHistory.slice().reverse().forEach((h, i) => { %>
+        <div class="timeline-item <%= i === 0 ? 'active' : '' %>">
+          <div class="timeline-dot status-<%= h.status.toLowerCase().replace(/\s+/g,'-') %>"></div>
+          <div class="timeline-content">
+            <div class="timeline-status"><%= h.status %></div>
+            <div class="timeline-by">By <%= h.updatedByName || 'System' %></div>
+            <div class="timeline-date"><%= new Date(h.timestamp).toLocaleDateString('en-IN', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}) %></div>
+            <% if (h.comment) { %>
+            <div class="timeline-comment">"<%= h.comment %>"</div>
+            <% } %>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Priority Info Box -->
+    <div class="card card-glass p-4">
+      <h6 class="fw-bold mb-3"><i class="bi bi-lightning-charge me-2"></i>Priority Calculation</h6>
+      <div class="priority-formula">
+        <div class="formula-row">
+          <span>Severity (S×5)</span>
+          <span class="formula-val"><%= issue.severity %> × 5 = <strong><%= issue.severity * 5 %></strong></span>
+        </div>
+        <div class="formula-row">
+          <span>Days Pending (D×1)</span>
+          <span class="formula-val"><%= issue.daysPending %> × 1 = <strong><%= issue.daysPending %></strong></span>
+        </div>
+        <div class="formula-row formula-total">
+          <span>Priority Score</span>
+          <span class="formula-val"><strong><%= issue.priorityScore %></strong></span>
+        </div>
+        <small class="text-muted">Formula: (A×2) + (S×5) + (D×1)</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightboxImg" src="" alt="Full size">
+</div>
+
+<% const lat = issue.location && issue.location.coordinates ? issue.location.coordinates[1] : null;
+   const lng = issue.location && issue.location.coordinates ? issue.location.coordinates[0] : null;
+%>
+<% const extraScripts = `
+<script>
+  const socket = io();
+  socket.emit('join-issue', '<%= issue._id %>');
+  socket.on('issue-updated', (data) => {
+    if (data.status) {
+      document.querySelector('.status-badge-lg').textContent = data.status;
+      document.querySelector('.status-badge-lg').className = 'status-badge-lg status-' + data.status.toLowerCase().replace(/\\s+/g,'-');
+      const toast = new bootstrap.Toast(document.getElementById('liveToast'));
+      document.getElementById('toastMsg').textContent = 'Status updated to: ' + data.status;
+      toast.show();
+    }
+  });
+
+  function upvoteIssue(id) {
+    fetch('/issues/' + id + '/upvote', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+      .then(r => r.json()).then(d => {
+        document.getElementById('upvoteCount').textContent = d.upvotes;
+      });
+  }
+
+  function openLightbox(src) {
+    document.getElementById('lightboxImg').src = src;
+    document.getElementById('lightbox').style.display = 'flex';
+  }
+  function closeLightbox() {
+    document.getElementById('lightbox').style.display = 'none';
+  }
+
+  ${lat && lng ? `
+  function initMap() {
+    const pos = { lat: ${lat}, lng: ${lng} };
+    const map = new google.maps.Map(document.getElementById('issueMap'), {
+      zoom: 16, center: pos
+    });
+    new google.maps.Marker({ position: pos, map, animation: google.maps.Animation.DROP });
+  }
+  ` : ''}
+</script>
+<% if (lat && lng) { %>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsKey %>&callback=initMap"></script>
+<% } %>
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="liveToast" class="toast">
+    <div class="toast-header bg-primary text-white">
+      <i class="bi bi-bell-fill me-2"></i><strong class="me-auto">Live Update</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+    </div>
+    <div class="toast-body" id="toastMsg"></div>
+  </div>
+</div>
+`; %>
+<%- include('../partials/footer') %>

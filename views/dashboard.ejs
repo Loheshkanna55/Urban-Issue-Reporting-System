@@ -1,0 +1,154 @@
+<%- include('partials/header') %>
+
+<div class="page-header">
+  <div>
+    <h2>Welcome, <%= currentUser.name %>! 👋</h2>
+    <p class="text-muted">Here's your civic activity overview</p>
+  </div>
+  <a href="/issues/new" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-2"></i>Report New Issue
+  </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-total" id="stat-total">
+      <div class="stat-icon"><i class="bi bi-clipboard-data"></i></div>
+      <div class="stat-number"><%= stats.total %></div>
+      <div class="stat-label">Total Issues</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-reported" id="stat-reported">
+      <div class="stat-icon"><i class="bi bi-flag"></i></div>
+      <div class="stat-number"><%= stats.reported %></div>
+      <div class="stat-label">Reported</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-progress" id="stat-progress">
+      <div class="stat-icon"><i class="bi bi-arrow-repeat"></i></div>
+      <div class="stat-number"><%= stats.inProgress %></div>
+      <div class="stat-label">In Progress</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card stat-resolved" id="stat-resolved">
+      <div class="stat-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="stat-number"><%= stats.resolved %></div>
+      <div class="stat-label">Resolved</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Recent Issues -->
+  <div class="col-md-8">
+    <div class="card card-glass">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-clock-history me-2"></i>Recent Issues</h5>
+        <a href="/issues" class="btn btn-sm btn-outline-primary">View All</a>
+      </div>
+      <div class="card-body p-0">
+        <% if (recentIssues.length === 0) { %>
+        <div class="empty-state py-5">
+          <i class="bi bi-inbox fs-1 text-muted"></i>
+          <p class="mt-3 text-muted">No issues reported yet</p>
+          <a href="/issues/new" class="btn btn-primary">Report Your First Issue</a>
+        </div>
+        <% } else { %>
+        <div class="issue-list">
+          <% recentIssues.forEach(issue => { %>
+          <a href="/issues/<%= issue._id %>" class="issue-list-item">
+            <div class="issue-icon category-<%= issue.category.toLowerCase().replace(/\s+/g,'-') %>">
+              <i class="bi bi-<%= 
+                issue.category === 'Pothole' ? 'circle-fill' :
+                issue.category === 'Garbage' ? 'trash' :
+                issue.category === 'Water Leakage' ? 'droplet' :
+                issue.category === 'Damaged Road' ? 'exclamation-triangle' :
+                issue.category === 'Broken Streetlight' ? 'lightbulb' : 'tools'
+              %>"></i>
+            </div>
+            <div class="issue-info">
+              <div class="issue-title"><%= issue.title %></div>
+              <div class="issue-meta">
+                <span><i class="bi bi-geo-alt me-1"></i><%= issue.area %></span>
+                <span><i class="bi bi-calendar me-1"></i><%= new Date(issue.createdAt).toLocaleDateString('en-IN') %></span>
+              </div>
+            </div>
+            <span class="status-badge status-<%= issue.status.toLowerCase().replace(/\s+/g,'-') %>">
+              <%= issue.status %>
+            </span>
+          </a>
+          <% }) %>
+        </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="col-md-4">
+    <div class="card card-glass">
+      <div class="card-header-custom">
+        <h5><i class="bi bi-bell me-2"></i>Notifications</h5>
+        <a href="/dashboard/notifications" class="btn btn-sm btn-outline-primary">All</a>
+      </div>
+      <div class="card-body p-0">
+        <% if (notifications.length === 0) { %>
+        <div class="empty-state py-4">
+          <i class="bi bi-bell-slash text-muted fs-3"></i>
+          <p class="text-muted mt-2 small">No new notifications</p>
+        </div>
+        <% } else { %>
+        <div class="notif-list">
+          <% notifications.forEach(n => { %>
+          <div class="notif-item <%= n.isRead ? '' : 'unread' %>">
+            <div class="notif-icon">
+              <i class="bi bi-<%= n.type === 'status_update' ? 'arrow-up-circle' : 'bell' %>"></i>
+            </div>
+            <div class="notif-text">
+              <div><%= n.message %></div>
+              <small class="text-muted"><%= new Date(n.createdAt).toLocaleDateString('en-IN') %></small>
+            </div>
+          </div>
+          <% }) %>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="card card-glass mt-4">
+      <div class="card-body">
+        <h6 class="fw-bold mb-3">Quick Actions</h6>
+        <div class="d-grid gap-2">
+          <a href="/issues/new" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-circle me-2"></i>Report Issue
+          </a>
+          <a href="/issues?status=Reported" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-flag me-2"></i>Pending Issues
+          </a>
+          <a href="/issues?status=Resolved" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-check-circle me-2"></i>Resolved Issues
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Live update toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index:9999">
+  <div id="liveToast" class="toast" role="alert">
+    <div class="toast-header bg-primary text-white">
+      <i class="bi bi-bell-fill me-2"></i>
+      <strong class="me-auto">Live Update</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+    </div>
+    <div class="toast-body" id="toastMsg"></div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

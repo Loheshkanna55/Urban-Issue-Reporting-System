@@ -1,0 +1,253 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h2><i class="bi bi-plus-circle me-2"></i>Report an Issue</h2>
+  <a href="/issues" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>Back
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card card-glass p-4">
+      <form action="/issues" method="POST" enctype="multipart/form-data" id="issueForm">
+
+        <!-- Step indicator -->
+        <div class="step-indicator mb-4">
+          <div class="step active" data-step="1"><span>1</span> Details</div>
+          <div class="step-line"></div>
+          <div class="step" data-step="2"><span>2</span> Location</div>
+          <div class="step-line"></div>
+          <div class="step" data-step="3"><span>3</span> Media</div>
+        </div>
+
+        <!-- Step 1: Details -->
+        <div class="form-step" id="step1">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Issue Title <span class="text-danger">*</span></label>
+            <input type="text" name="title" class="form-control form-control-lg"
+                   placeholder="e.g. Deep pothole on main road" required maxlength="100">
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Category <span class="text-danger">*</span></label>
+              <select name="category" class="form-select" required>
+                <option value="">Select Category...</option>
+                <option value="Pothole">🕳️ Pothole</option>
+                <option value="Garbage">🗑️ Garbage Accumulation</option>
+                <option value="Water Leakage">💧 Water Leakage</option>
+                <option value="Damaged Road">🛣️ Damaged Road</option>
+                <option value="Broken Streetlight">💡 Broken Streetlight</option>
+                <option value="Sewage">🚰 Sewage Issue</option>
+                <option value="Encroachment">🚧 Encroachment</option>
+                <option value="Other">⚙️ Other</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Severity Level</label>
+              <div class="severity-selector">
+                <% for(let i=1; i<=5; i++) { %>
+                <input type="radio" name="severity" value="<%= i %>" id="sev<%= i %>" <%= i===3?'checked':'' %>>
+                <label for="sev<%= i %>" title="<%= ['Very Low','Low','Medium','High','Critical'][i-1] %>">
+                  <%= i %>
+                </label>
+                <% } %>
+              </div>
+              <small class="text-muted">1=Low, 5=Critical</small>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Description <span class="text-danger">*</span></label>
+            <textarea name="description" class="form-control" rows="4"
+                      placeholder="Describe the issue in detail — what, when, how severe..." required minlength="20"></textarea>
+          </div>
+
+          <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+            Next: Location <i class="bi bi-arrow-right ms-1"></i>
+          </button>
+        </div>
+
+        <!-- Step 2: Location -->
+        <div class="form-step d-none" id="step2">
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">City/District <span class="text-danger">*</span></label>
+              <input type="text" name="area" class="form-control" placeholder="e.g. Mumbai" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Locality <span class="text-danger">*</span></label>
+              <input type="text" name="locality" class="form-control" placeholder="e.g. Bandra West" required>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Full Address</label>
+            <input type="text" name="address" id="addressInput" class="form-control"
+                   placeholder="Enter full address or pin on map">
+          </div>
+
+          <div class="location-actions mb-3">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="getLocation()">
+              <i class="bi bi-geo-alt-fill me-1"></i>Use My Location
+            </button>
+            <span class="ms-3 text-muted small" id="locationStatus"></span>
+          </div>
+
+          <div id="map" class="issue-map mb-3" style="height:300px; border-radius:12px;"></div>
+          <input type="hidden" name="lat" id="latInput">
+          <input type="hidden" name="lng" id="lngInput">
+          <p class="text-muted small"><i class="bi bi-info-circle me-1"></i>Click on the map to pin the exact location</p>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="prevStep(1)">
+              <i class="bi bi-arrow-left me-1"></i>Back
+            </button>
+            <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+              Next: Media <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Media & Submit -->
+        <div class="form-step d-none" id="step3">
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Upload Photos (Max 5, 5MB each)</label>
+            <div class="upload-area" id="uploadArea">
+              <input type="file" name="images" id="imageInput" multiple accept="image/*" class="d-none">
+              <div onclick="document.getElementById('imageInput').click()">
+                <i class="bi bi-cloud-upload fs-2 text-muted"></i>
+                <p class="text-muted mt-2">Click to upload or drag & drop photos</p>
+                <p class="text-muted small">JPEG, PNG, WebP — Max 5MB each</p>
+              </div>
+            </div>
+            <div class="image-preview-grid mt-3" id="previewGrid"></div>
+          </div>
+
+          <div class="summary-box mb-4">
+            <h6 class="fw-bold"><i class="bi bi-clipboard-check me-2"></i>Issue Summary</h6>
+            <div class="row">
+              <div class="col-6"><small class="text-muted">Title</small><p id="sum-title" class="fw-semibold mb-1">—</p></div>
+              <div class="col-6"><small class="text-muted">Category</small><p id="sum-cat" class="fw-semibold mb-1">—</p></div>
+              <div class="col-6"><small class="text-muted">Area</small><p id="sum-area" class="fw-semibold mb-1">—</p></div>
+              <div class="col-6"><small class="text-muted">Severity</small><p id="sum-sev" class="fw-semibold mb-1">—</p></div>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="prevStep(2)">
+              <i class="bi bi-arrow-left me-1"></i>Back
+            </button>
+            <button type="submit" class="btn btn-success btn-lg px-4">
+              <i class="bi bi-send me-2"></i>Submit Issue
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<% const extraScripts = `
+<script>
+  let map, marker;
+  let currentStep = 1;
+
+  function initMap() {
+    const defaultPos = { lat: 19.076, lng: 72.8777 }; // Mumbai
+    map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 12, center: defaultPos,
+      styles: [{ elementType: 'geometry', stylers: [{ color: '#f5f5f5' }] }]
+    });
+    map.addListener('click', (e) => placeMarker(e.latLng.lat(), e.latLng.lng()));
+  }
+
+  function placeMarker(lat, lng) {
+    if (marker) marker.setMap(null);
+    marker = new google.maps.Marker({ position: { lat, lng }, map, animation: google.maps.Animation.DROP });
+    document.getElementById('latInput').value = lat;
+    document.getElementById('lngInput').value = lng;
+    // Reverse geocode
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        document.getElementById('addressInput').value = results[0].formatted_address;
+      }
+    });
+  }
+
+  function getLocation() {
+    const status = document.getElementById('locationStatus');
+    status.textContent = 'Getting location...';
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        map.setCenter({ lat, lng });
+        map.setZoom(16);
+        placeMarker(lat, lng);
+        status.textContent = '✓ Location captured';
+      },
+      () => { status.textContent = '✗ Could not get location'; }
+    );
+  }
+
+  function nextStep(n) {
+    document.getElementById('step' + currentStep).classList.add('d-none');
+    document.getElementById('step' + n).classList.remove('d-none');
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.querySelector('[data-step="' + n + '"]').classList.add('active');
+    currentStep = n;
+    if (n === 2 && typeof google !== 'undefined') google.maps.event.trigger(map, 'resize');
+    if (n === 3) updateSummary();
+  }
+
+  function prevStep(n) {
+    document.getElementById('step' + currentStep).classList.add('d-none');
+    document.getElementById('step' + n).classList.remove('d-none');
+    document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+    document.querySelector('[data-step="' + n + '"]').classList.add('active');
+    currentStep = n;
+  }
+
+  function updateSummary() {
+    document.getElementById('sum-title').textContent = document.querySelector('[name=title]').value || '—';
+    document.getElementById('sum-cat').textContent = document.querySelector('[name=category]').value || '—';
+    document.getElementById('sum-area').textContent = document.querySelector('[name=area]').value || '—';
+    const sev = document.querySelector('[name=severity]:checked');
+    document.getElementById('sum-sev').textContent = sev ? sev.value + '/5' : '—';
+  }
+
+  // Image preview
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('imageInput');
+    const grid = document.getElementById('previewGrid');
+    const area = document.getElementById('uploadArea');
+
+    input.addEventListener('change', () => {
+      grid.innerHTML = '';
+      Array.from(input.files).slice(0, 5).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const div = document.createElement('div');
+          div.className = 'preview-img';
+          div.innerHTML = '<img src="' + e.target.result + '" alt="">';
+          grid.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      });
+    });
+
+    area.addEventListener('dragover', e => { e.preventDefault(); area.classList.add('dragover'); });
+    area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+    area.addEventListener('drop', e => {
+      e.preventDefault();
+      area.classList.remove('dragover');
+      input.files = e.dataTransfer.files;
+      input.dispatchEvent(new Event('change'));
+    });
+  });
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=${googleMapsKey}&callback=initMap"></script>
+`; %>
+<%- include('../partials/footer') %>

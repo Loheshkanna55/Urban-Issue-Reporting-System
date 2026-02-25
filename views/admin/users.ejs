@@ -1,0 +1,51 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <h2><i class="bi bi-people me-2"></i>Manage Users</h2>
+</div>
+
+<div class="card card-glass">
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Avatar</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Phone</th>
+          <th>Area</th>
+          <th>Role</th>
+          <th>Joined</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% users.forEach(user => { %>
+        <tr>
+          <td>
+            <img src="<%= user.profileImage || '/img/default-avatar.png' %>"
+                 alt="" style="width:36px;height:36px;border-radius:50%;object-fit:cover">
+          </td>
+          <td><strong><%= user.name %></strong></td>
+          <td><small><%= user.email %></small></td>
+          <td><small><%= user.phone || '—' %></small></td>
+          <td><small><%= user.area || '—' %></small></td>
+          <td>
+            <span class="badge bg-<%= user.role === 'admin' ? 'danger' : 'primary' %>">
+              <%= user.role %>
+            </span>
+          </td>
+          <td><small><%= new Date(user.createdAt).toLocaleDateString('en-IN', {day:'numeric',month:'short',year:'numeric'}) %></small></td>
+          <td>
+            <span class="badge bg-<%= user.isActive ? 'success' : 'secondary' %>">
+              <%= user.isActive ? 'Active' : 'Inactive' %>
+            </span>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

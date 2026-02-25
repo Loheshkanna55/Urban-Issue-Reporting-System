@@ -1,0 +1,34 @@
+<%- include('partials/header') %>
+
+<div class="page-header">
+  <h2><i class="bi bi-bell me-2"></i>Notifications</h2>
+</div>
+
+<div class="card card-glass">
+  <% if (notifications.length === 0) { %>
+  <div class="empty-state py-5">
+    <i class="bi bi-bell-slash fs-1 text-muted"></i>
+    <p class="text-muted mt-3">No notifications yet</p>
+  </div>
+  <% } else { %>
+  <div class="notif-list notif-list-full">
+    <% notifications.forEach(n => { %>
+    <div class="notif-item-full <%= n.isRead ? '' : 'unread' %>">
+      <div class="notif-icon-lg bg-<%= n.type === 'status_update' ? 'primary' : n.type === 'new_issue' ? 'success' : 'warning' %>">
+        <i class="bi bi-<%= n.type === 'status_update' ? 'arrow-up-circle' : n.type === 'new_issue' ? 'plus-circle' : 'bell' %>"></i>
+      </div>
+      <div class="notif-body">
+        <div class="notif-msg"><%= n.message %></div>
+        <% if (n.issueId) { %>
+        <a href="/issues/<%= n.issue %>" class="notif-link">View Issue #<%= n.issueId %> →</a>
+        <% } %>
+        <div class="notif-time"><%= new Date(n.createdAt).toLocaleString('en-IN') %></div>
+      </div>
+      <% if (!n.isRead) { %><span class="notif-dot"></span><% } %>
+    </div>
+    <% }) %>
+  </div>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

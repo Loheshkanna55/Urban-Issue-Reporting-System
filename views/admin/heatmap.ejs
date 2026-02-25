@@ -1,0 +1,131 @@
+<%- include('../partials/header') %>
+
+<div class="page-header">
+  <div>
+    <h2><i class="bi bi-map me-2"></i>Issue Heatmap</h2>
+    <p class="text-muted">Visual density map of urban issues by location</p>
+  </div>
+  <div class="d-flex gap-2">
+    <select id="categoryFilter" class="form-select form-select-sm" onchange="updateMap()">
+      <option value="">All Categories</option>
+      <% ['Pothole','Garbage','Water Leakage','Damaged Road','Broken Streetlight','Sewage','Encroachment','Other'].forEach(c => { %>
+      <option value="<%= c %>"><%= c %></option>
+      <% }) %>
+    </select>
+    <select id="statusFilter" class="form-select form-select-sm" onchange="updateMap()">
+      <option value="">All Statuses</option>
+      <% ['Reported','Verified','In Progress','Resolved'].forEach(s => { %>
+      <option value="<%= s %>"><%= s %></option>
+      <% }) %>
+    </select>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-9">
+    <div class="card card-glass p-0 overflow-hidden">
+      <div id="heatmap" style="height: 550px;"></div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card card-glass p-3 mb-3">
+      <h6 class="fw-bold mb-3">Legend</h6>
+      <div class="heatmap-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:#e74c3c"></span>Critical (40+)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f39c12"></span>High (25-39)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#3498db"></span>Medium (15-24)</div>
+        <div class="legend-item"><span class="legend-dot" style="background:#27ae60"></span>Low (0-14)</div>
+      </div>
+    </div>
+    <div class="card card-glass p-3">
+      <h6 class="fw-bold mb-3">Area Statistics</h6>
+      <div id="areaStats"><p class="text-muted small">Loading...</p></div>
+    </div>
+  </div>
+</div>
+
+<% const extraScripts = `
+<script>
+  let map, markers = [];
+
+  function initMap() {
+    map = new google.maps.Map(document.getElementById('heatmap'), {
+      zoom: 11,
+      center: { lat: 19.076, lng: 72.8777 },
+      mapTypeId: 'roadmap'
+    });
+    loadIssues();
+    loadAreaStats();
+  }
+
+  function clearMarkers() {
+    markers.forEach(m => m.setMap(null));
+    markers = [];
+  }
+
+  function getColor(score) {
+    if (score >= 40) return '#e74c3c';
+    if (score >= 25) return '#f39c12';
+    if (score >= 15) return '#3498db';
+    return '#27ae60';
+  }
+
+  function updateMap() { clearMarkers(); loadIssues(); }
+
+  function loadIssues() {
+    const cat = document.getElementById('categoryFilter').value;
+    const st = document.getElementById('statusFilter').value;
+    let url = '/api/issues/geojson?';
+    if (cat) url += 'category=' + encodeURIComponent(cat) + '&';
+    if (st) url += 'status=' + encodeURIComponent(st);
+
+    fetch(url).then(r => r.json()).then(data => {
+      data.features.forEach(f => {
+        if (!f.geometry || !f.geometry.coordinates) return;
+        const [lng, lat] = f.geometry.coordinates;
+        const p = f.properties;
+        const color = getColor(p.priorityScore);
+
+        const marker = new google.maps.Marker({
+          position: { lat, lng },
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8 + p.severity * 2,
+            fillColor: color,
+            fillOpacity: 0.8,
+            strokeColor: '#fff',
+            strokeWeight: 2
+          },
+          title: p.title
+        });
+
+        const info = new google.maps.InfoWindow({
+          content: '<div style="font-family:Inter,sans-serif;padding:5px"><strong>' + p.title + '</strong><br>' +
+                   '<small>📍 ' + p.area + '</small><br>' +
+                   '<small>🏷️ ' + p.category + '</small><br>' +
+                   '<small>⚡ Priority: ' + p.priorityScore + '</small><br>' +
+                   '<span style="background:' + color + ';color:white;padding:2px 6px;border-radius:4px;font-size:11px">' + p.status + '</span></div>'
+        });
+
+        marker.addListener('click', () => info.open(map, marker));
+        markers.push(marker);
+      });
+    });
+  }
+
+  function loadAreaStats() {
+    fetch('/api/issues/area-stats').then(r => r.json()).then(data => {
+      const el = document.getElementById('areaStats');
+      el.innerHTML = data.map(a => \`
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="small">\${a._id || 'Unknown'}</span>
+          <span class="badge bg-primary">\${a.count}</span>
+        </div>
+      \`).join('') || '<p class="text-muted small">No data</p>';
+    });
+  }
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsKey %>&callback=initMap"></script>
+`; %>
+<%- include('../partials/footer') %>
