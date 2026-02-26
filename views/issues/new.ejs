@@ -64,7 +64,7 @@
                       placeholder="Describe the issue in detail — what, when, how severe..." required minlength="20"></textarea>
           </div>
 
-          <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+          <button type="button" class="btn btn-primary" id="step1Next">
             Next: Location <i class="bi bi-arrow-right ms-1"></i>
           </button>
         </div>
@@ -104,7 +104,7 @@
             <button type="button" class="btn btn-outline-secondary" onclick="prevStep(1)">
               <i class="bi bi-arrow-left me-1"></i>Back
             </button>
-            <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+            <button type="button" class="btn btn-primary" id="step2Next">
               Next: Media <i class="bi bi-arrow-right ms-1"></i>
             </button>
           </div>
@@ -192,14 +192,52 @@
     );
   }
 
+  function validateStep1() {
+    const title = document.querySelector('[name=title]').value.trim();
+    const category = document.querySelector('[name=category]').value;
+    const description = document.querySelector('[name=description]').value.trim();
+
+    if (!title) {
+      alert('Please enter an issue title');
+      return false;
+    }
+    if (!category) {
+      alert('Please select a category');
+      return false;
+    }
+    if (!description || description.length < 20) {
+      alert('Please provide a detailed description (minimum 20 characters)');
+      return false;
+    }
+    return true;
+  }
+
+  function validateStep2() {
+    const area = document.querySelector('[name=area]').value.trim();
+    const locality = document.querySelector('[name=locality]').value.trim();
+
+    if (!area) {
+      alert('Please enter city/district');
+      return false;
+    }
+    if (!locality) {
+      alert('Please enter locality');
+      return false;
+    }
+    return true;
+  }
+
   function nextStep(n) {
     document.getElementById('step' + currentStep).classList.add('d-none');
     document.getElementById('step' + n).classList.remove('d-none');
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.querySelector('[data-step="' + n + '"]').classList.add('active');
     currentStep = n;
-    if (n === 2 && typeof google !== 'undefined') google.maps.event.trigger(map, 'resize');
+    if (n === 2 && typeof google !== 'undefined') {
+      setTimeout(() => google.maps.event.trigger(map, 'resize'), 100);
+    }
     if (n === 3) updateSummary();
+    window.scrollTo(0, 0);
   }
 
   function prevStep(n) {
@@ -208,6 +246,7 @@
     document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
     document.querySelector('[data-step="' + n + '"]').classList.add('active');
     currentStep = n;
+    window.scrollTo(0, 0);
   }
 
   function updateSummary() {
@@ -220,6 +259,13 @@
 
   // Image preview
   document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('step1Next').addEventListener('click', () => {
+      if (validateStep1()) nextStep(2);
+    });
+
+    document.getElementById('step2Next').addEventListener('click', () => {
+      if (validateStep2()) nextStep(3);
+    });
     const input = document.getElementById('imageInput');
     const grid = document.getElementById('previewGrid');
     const area = document.getElementById('uploadArea');
